@@ -1,0 +1,34 @@
+name: Passvakt
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: passvakt
+
+jobs:
+  sjekk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sjekk ledige passtimer
+        env:
+          NTFY_EMNE: ${{ secrets.NTFY_EMNE }}
+        run: python3 passvakt.py --en-gang
+
+      - name: Husk hva som er varslet
+        run: |
+          if [ -n "$(git status --porcelain passvakt_state.json)" ]; then
+            git config user.name "passvakt"
+            git config user.email "passvakt@users.noreply.github.com"
+            git add passvakt_state.json
+            git commit -m "Oppdater varslede timer"
+            git push
+          fi
